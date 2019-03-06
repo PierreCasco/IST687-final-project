@@ -12,12 +12,12 @@ playerSalary <- merge(playerSalary,Master, by="playerID")
 #Remove NA columns
 playerSalary <- playerSalary[,colSums(is.na(playerSalary))<nrow(playerSalary)]
 
-#Create dataframe for 5 top paid players
-kershaw <- sqldf("Select * from Salaries where playerID = 'kershcl01'")
-arod <- sqldf("Select * from Salaries where playerID = 'rodrial01'")
-greinke <- sqldf("Select * from Salaries where playerID = 'greinza01'")
-price <- sqldf("Select * from Salaries where playerID = 'priceda01'")
-cabrera <- sqldf("Select * from Salaries where playerID = 'cabremi01'")
+#Create dataframe for top 5 paid players
+kershaw <- sqldf("Select * from playerSalary where playerID = 'kershcl01'")
+arod <- sqldf("Select * from playerSalary where playerID = 'rodrial01'")
+greinke <- sqldf("Select * from playerSalary where playerID = 'greinza01'")
+price <- sqldf("Select * from playerSalary where playerID = 'priceda01'")
+cabrera <- sqldf("Select * from playerSalary where playerID = 'cabremi01'")
 
 #Plot salaries
 ggplot(kershaw,aes(x=yearID,y=salary)) + geom_line()
