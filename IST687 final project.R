@@ -38,5 +38,7 @@ price <- merge(price,teamRecs,by=c("teamID","yearID"))
 cabrera <- merge(cabrera,teamRecs,by=c("teamID","yearID"))
 
 #Plot salary and team wins
-a1 <- ggplot(arod,aes(x=yearID)) + geom_line(aes(y=salary), colour='blue') 
-a1 <- a1 + geom_line(aes(y=W),colour='red') + scale_y_continuous(sec.axis = sec_axis(~./3e+07,name = "Wins"))
+library('latticeExtra')
+obj1 <- xyplot(arod$salary ~ arod$yearID, arod)
+obj2 <- xyplot(arod$W ~ arod$yearID, arod)
+doubleYScale(obj1,obj2,add.ylab2 = TRUE)
