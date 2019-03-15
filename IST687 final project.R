@@ -3,6 +3,7 @@ library('dplyr')
 library('ggplot2')
 library('sqldf')
 library('reshape2')
+library('gridExtra')
 
 #Get 30 greatest salaries
 playerSalary <- head(Salaries[order(-Salaries$salary),],30)
@@ -50,20 +51,35 @@ cabrera <- cabrera[order(cabrera$yearID),]
 library('latticeExtra')
 obj1 <- xyplot(kershaw$salary ~ kershaw$yearID, kershaw, xlab = "Year", ylab = "Salary", type = 'l')
 obj2 <- xyplot(kershaw$W ~ kershaw$yearID, kershaw, xlab = "Year", ylab = "Wins", type = 'l')
-kershawPlot <- doubleYScale(obj1, obj2, text = c("Salary","Wins"), add.ylab2 = TRUE)
+kershawPlot <- doubleYScale(obj1, obj2, text = c("Salary","Wins"), add.ylab2 = TRUE, title = "Kershaw")
 
 obj3 <- xyplot(arod$salary ~ arod$yearID, arod, xlab = "Year", ylab = "Salary", type = 'l')
 obj4 <- xyplot(arod$W ~ arod$yearID, arod, xlab = "Year", ylab = "Wins", type = 'l')
-arodPlot <- doubleYScale(obj3, obj4, text = c("Salary","Wins"), add.ylab2 = TRUE)
+arodPlot <- doubleYScale(obj3, obj4, text = c("Salary","Wins"), add.ylab2 = TRUE, title = "Rodriguez")
 
 obj5 <- xyplot(greinke$salary ~ greinke$yearID, greinke, xlab = "Year", ylab = "Salary", type = 'l')
 obj6 <- xyplot(greinke$W ~ greinke$yearID, greinke, xlab = "Year", ylab = "Wins", type = 'l')
-greinkePlot <- doubleYScale(obj5, obj6, text = c("Salary","Wins"), add.ylab2 = TRUE)
+greinkePlot <- doubleYScale(obj5, obj6, text = c("Salary","Wins"), add.ylab2 = TRUE, title = "Greinke")
 
 obj7 <- xyplot(price$salary ~ price$yearID, price, xlab = "Year", ylab = "Salary", type = 'l')
 obj8 <- xyplot(price$W ~ price$yearID, price, xlab = "Year", ylab = "Wins", type = 'l')
-pricePlot <- doubleYScale(obj7, obj8, text = c("Salary","Wins"), add.ylab2 = TRUE)
+pricePlot <- doubleYScale(obj7, obj8, text = c("Salary","Wins"), add.ylab2 = TRUE, title = "Price")
 
 obj9 <- xyplot(cabrera$salary ~ cabrera$yearID, cabrera, xlab = "Year", ylab = "Salary", type = 'l')
 obj10 <- xyplot(cabrera$W ~ cabrera$yearID, cabrera, xlab = "Year", ylab = "Wins", type = 'l')
-cabreraPlot <- doubleYScale(obj9, obj10, text = c("Salary","Wins"), add.ylab2 = TRUE)
+cabreraPlot <- doubleYScale(obj9, obj10, text = c("Salary","Wins"), add.ylab2 = TRUE,title = "Cabrera")
+
+#Combine all plots in one
+grid.arrange(kershawPlot,arodPlot,greinkePlot,pricePlot,cabreraPlot, nrow = 2)
+
+#Create new dataframe with salary and batting stats
+allSalary <- merge(Salaries, Batting, by = c("playerID", "yearID", "lgID", "teamID"))
+allSalary <- allSalary[order(allSalary$yearID),]
+
+#Run Random Forest on salary
+allSalary.rf <- randomForest(salary ~ teamID + G + AB + R + H + HR + RBI, allSalary,ntree = 500)
+importance(allSalary.rf)
+
+#At first glance, the teamID being the most important seemed strange. But after some thought, it made sense. In baseball
+#there is no salary cap so teams like the Yankees, Red Sox, and Cardinals can throw large sums of money at players.
+
