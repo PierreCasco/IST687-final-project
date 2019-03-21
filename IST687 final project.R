@@ -83,3 +83,26 @@ importance(allSalary.rf)
 #At first glance, the teamID being the most important seemed strange. But after some thought, it made sense. In baseball
 #there is no salary cap so teams like the Yankees, Red Sox, and Cardinals can throw large sums of money at players.
 
+
+#Run SVM to predict World Series Winners
+#Create train data set using all World Series winners
+WSWinners <- sqldf("Select * from Teams where WSWin = 'Y'")
+
+library('kernlab')
+model.batting <-ksvm(teamID ~ R + AB + H + X2B + X3B + HR + 
+              SB, data = WSWinners)
+
+#Read in 2018 stats info
+library('readxl')
+library('knitr')
+b <- ('2018 batting.xlsx')
+batting <- read_xlsx(b)
+batting <- as.data.frame(batting)
+names(batting)[10] <- "X2B"
+names(batting)[11] <- "X3B"
+
+p <- ('2018 pitching.xlsx')
+pitching <- read_xlsx(p)
+pitching <- as.data.frame(pitching)
+
+
