@@ -88,21 +88,33 @@ importance(allSalary.rf)
 #Create train data set using all World Series winners
 WSWinners <- sqldf("Select * from Teams where WSWin = 'Y'")
 
-library('kernlab')
-model.batting <-ksvm(teamID ~ R + AB + H + X2B + X3B + HR + 
-              SB, data = WSWinners)
-
 #Read in 2018 stats info
 library('readxl')
 library('knitr')
 b <- ('2018 batting.xlsx')
+
+#Create data frame for batting and rename columns
 batting <- read_xlsx(b)
 batting <- as.data.frame(batting)
 names(batting)[10] <- "X2B"
 names(batting)[11] <- "X3B"
 
+#Get Win/Loss data and merge with batting data frame
+record <-  as.data.frame(pitching$Tm,pitching$W,pitching$L)
+record$Tm <- pitching$Tm
+record$W <- pitching$W
+record$L <- pitching$L
+batting <- merge(batting, record, by = "Tm") 
+
+#Create decision tree for batting info
+library(rpart)
+fit <- rpart(franchID ~ R + H + X2B + X3B + HR + AB + SB + W + L, data = WSWinners, method = "class")
+dt <- predict(fit, batting, type = "class")
+summary(dt)
+
 p <- ('2018 pitching.xlsx')
 pitching <- read_xlsx(p)
 pitching <- as.data.frame(pitching)
+
 
 
