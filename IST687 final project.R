@@ -49,28 +49,47 @@ cabrera <- cabrera[order(cabrera$yearID),]
 
 #Plot salary and team wins
 library('latticeExtra')
-obj1 <- xyplot(kershaw$salary ~ kershaw$yearID, kershaw, xlab = "Year", ylab = "Salary", type = 'l')
-obj2 <- xyplot(kershaw$W ~ kershaw$yearID, kershaw, xlab = "Year", ylab = "Wins", type = 'l')
-kershawPlot <- doubleYScale(obj1, obj2, text = c("Salary","Wins"), add.ylab2 = TRUE, title = "Kershaw")
+library('lattice')
 
-obj3 <- xyplot(arod$salary ~ arod$yearID, arod, xlab = "Year", ylab = "Salary", type = 'l')
-obj4 <- xyplot(arod$W ~ arod$yearID, arod, xlab = "Year", ylab = "Wins", type = 'l')
-arodPlot <- doubleYScale(obj3, obj4, text = c("Salary","Wins"), add.ylab2 = TRUE, title = "Rodriguez")
+#Function to plot wins
+doublePlot <- function(s,y,w,df,n){
+  obj1 <- xyplot(round(s/1000000,digits = 1) ~ y, df, main = n,
+                 xlab = "Year", ylab = "Salary (Millions)", type = 'l')
+  obj2 <- xyplot(w ~ y, df, xlab = "Year", ylab = "Wins", type = 'l')
+  dPlot <- doubleYScale(obj1,obj2, add.ylab2 = TRUE)
+  return(dPlot)
+}
 
-obj5 <- xyplot(greinke$salary ~ greinke$yearID, greinke, xlab = "Year", ylab = "Salary", type = 'l')
-obj6 <- xyplot(greinke$W ~ greinke$yearID, greinke, xlab = "Year", ylab = "Wins", type = 'l')
-greinkePlot <- doubleYScale(obj5, obj6, text = c("Salary","Wins"), add.ylab2 = TRUE, title = "Greinke")
+#Function to plot attendance
+doublePlot.a <- function(s,y,w,df,n){
+  obj1 <- xyplot(round(s/1000000,digits = 1) ~ y, df, main = n,
+                 xlab = "Year", ylab = "Salary (Millions)", type = 'l')
+  obj2 <- xyplot(w/1000000 ~ y, df, xlab = "Year", ylab = "Attendance (Millions)", type = 'l')
+  dPlot <- doubleYScale(obj1,obj2, add.ylab2 = TRUE)
+  return(dPlot)
+}
 
-obj7 <- xyplot(price$salary ~ price$yearID, price, xlab = "Year", ylab = "Salary", type = 'l')
-obj8 <- xyplot(price$W ~ price$yearID, price, xlab = "Year", ylab = "Wins", type = 'l')
-pricePlot <- doubleYScale(obj7, obj8, text = c("Salary","Wins"), add.ylab2 = TRUE, title = "Price")
+#Plot salary and wins
+kershawPlot <- doublePlot(kershaw$salary, kershaw$yearID, kershaw$W, kershaw, "Kershaw")
+arodPlot <- doublePlot(arod$salary, arod$yearID, arod$W, arod, "Rodriguez")
+greinkePlot <- doublePlot(greinke$salary,greinke$yearID,greinke$W,greinke, "Greinke")
+pricePlot <- doublePlot(price$salary,price$yearID,price$W, price, "Price")
+cabreraPlot <- doublePlot(cabrera$salary,cabrera$yearID,cabrera$W, cabrera, "Cabrera")
 
-obj9 <- xyplot(cabrera$salary ~ cabrera$yearID, cabrera, xlab = "Year", ylab = "Salary", type = 'l')
-obj10 <- xyplot(cabrera$W ~ cabrera$yearID, cabrera, xlab = "Year", ylab = "Wins", type = 'l')
-cabreraPlot <- doubleYScale(obj9, obj10, text = c("Salary","Wins"), add.ylab2 = TRUE,title = "Cabrera")
+#Combine all salary/wins plots in one
+grid.arrange(kershawPlot, arodPlot, greinkePlot, pricePlot, cabreraPlot, 
+             nrow = 3, top = "Salary and Team Wins")
 
-#Combine all plots in one
-grid.arrange(kershawPlot,arodPlot,greinkePlot,pricePlot,cabreraPlot, nrow = 2)
+#Plot salary and team attendance
+kershaw.att <- doublePlot.a(kershaw$salary, kershaw$yearID, kershaw$attendance, kershaw, "Kershaw")
+arod.att <- doublePlot.a(arod$salary, arod$yearID, arod$attendance, arod, "Rodriguez")
+greinke.att <- doublePlot.a(greinke$salary, greinke$yearID, greinke$attendance, greinke, "Greinke")
+price.att <- doublePlot.a(price$salary, price$yearID, price$attendance, price, "Price")
+cabrera.att <- doublePlot.a(cabrera$salary, cabrera$yearID, cabrera$attendance, cabrera, "Cabrera")
+
+#Combine all salary/attendance plots in one
+grid.arrange(kershaw.att, arod.att, greinke.att, price.att, cabrera.att, 
+             nrow = 3, top = "Salary and Team Attendance (Year Total)")
 
 #Create new dataframe with salary and batting stats
 allSalary <- merge(Salaries, Batting, by = c("playerID", "yearID", "lgID", "teamID"))
@@ -84,9 +103,12 @@ importance(allSalary.rf)
 #there is no salary cap so teams like the Yankees, Red Sox, and Cardinals can throw large sums of money at players.
 
 
-#Run SVM to predict World Series Winners
-#Create train data set using all World Series winners
+#Run decision tree to predict World Series Winners
+#Create data set using all World Series winners
 WSWinners <- sqldf("Select * from Teams where WSWin = 'Y'")
+
+#Create data set with modern info
+modernWSWinners <- sqldf("Select * from Teams where WSWin = 'Y' and yearID > '1970'")
 
 #Read in 2018 stats info
 library('readxl')
@@ -99,6 +121,11 @@ batting <- as.data.frame(batting)
 names(batting)[10] <- "X2B"
 names(batting)[11] <- "X3B"
 
+#Pitching data
+p <- ('2018 pitching.xlsx')
+pitching <- read_xlsx(p)
+pitching <- as.data.frame(pitching)
+
 #Get Win/Loss data and merge with batting data frame
 record <-  as.data.frame(pitching$Tm,pitching$W,pitching$L)
 record$Tm <- pitching$Tm
@@ -106,15 +133,24 @@ record$W <- pitching$W
 record$L <- pitching$L
 batting <- merge(batting, record, by = "Tm") 
 
-#Create decision tree for batting info
+#Create decision tree for batting info, all data
 library(rpart)
-fit <- rpart(franchID ~ R + H + X2B + X3B + HR + AB + SB + W + L, data = WSWinners, method = "class")
+fit <- rpart(franchID ~ R + H + X2B + X3B + HR + AB + 
+               SB + W + L, data = WSWinners, method = "class")
 dt <- predict(fit, batting, type = "class")
 summary(dt)
 
-p <- ('2018 pitching.xlsx')
-pitching <- read_xlsx(p)
-pitching <- as.data.frame(pitching)
+#Create decision tree for batting info, modern data
+modernFit <- rpart(franchID ~ R + H + X2B + X3B + HR + AB + 
+                     SB + W + L, data = modernWSWinners, method = "anova")
+mdt <- predict(modernFit, batting, type = "class")
+summary(mdt)
 
+#Random Forest with modern data
+a <- droplevels(modernWSWinners)
 
+a.rf <- randomForest(franchID ~ R + H + X2B + X3B + HR + AB + 
+               SB, a, ntree = 500)
+importance(a.rf)
+a.p <- predict(a.rf,batting,type = "class")
 
