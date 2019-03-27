@@ -95,8 +95,10 @@ grid.arrange(kershaw.att, arod.att, greinke.att, price.att, cabrera.att,
 allSalary <- merge(Salaries, Batting, by = c("playerID", "yearID", "lgID", "teamID"))
 allSalary <- allSalary[order(allSalary$yearID),]
 
-#Run Random Forest on salary
-allSalary.rf <- randomForest(salary ~ teamID + G + AB + R + H + HR + RBI, allSalary,ntree = 500)
+#Run Random Forest on salary to see input importance in determining higher salary
+library('randomForest')
+allSalary.rf <- randomForest(salary ~ teamID + G + AB + R + H + HR + RBI + X2B + X3B, allSalary,
+                             ntree = 100,mtry=2)
 importance(allSalary.rf)
 
 #At first glance, the teamID being the most important seemed strange. But after some thought, it made sense. In baseball
@@ -142,15 +144,27 @@ summary(dt)
 
 #Create decision tree for batting info, modern data
 modernFit <- rpart(franchID ~ R + H + X2B + X3B + HR + AB + 
-                     SB + W + L, data = modernWSWinners, method = "anova")
+                     SB + W + L, data = modernWSWinners, method = "class")
 mdt <- predict(modernFit, batting, type = "class")
 summary(mdt)
 
 #Random Forest with modern data
 a <- droplevels(modernWSWinners)
 
-a.rf <- randomForest(franchID ~ R + H + X2B + X3B + HR + AB + 
-               SB, a, ntree = 500)
+a.rf <- randomForest(franchID ~ R + H + X2B + X3B + HR 
+               , a, ntree = 1000, mtry = 2)
 importance(a.rf)
 a.p <- predict(a.rf,batting,type = "class")
 
+#Random Forest with all data
+c <- droplevels(WSWinners)
+
+c.rf <- randomForest(franchID ~ R + H + X2B + X3B + HR + 
+                     W + L, c, ntree = 1000, mtry = 2)
+importance(c.rf)
+c.p <- predict(c.rf,batting,type = "class")
+
+#Linear regression on WS Winners
+
+k <-lm(formula = W ~ R + H + X2B + X3B + HR + AB + BB + SO + SB + RA + ER + ERA + attendance, WSWinners)
+summary(k)
